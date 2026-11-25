@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            extra: ""
+          - os: macos-latest
+            name: macOS
+            extra: "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+          - os: ubuntu-latest
+            name: Linux
+            extra: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libxcomposite-dev libgl1-mesa-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DSH4D_BUILD_TESTS=ON "${{ matrix.extra }}"
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: MIDI logic tests (Linux)
+        if: runner.os == 'Linux'
+        run: ./build/SH4dTests_artefacts/Release/SH4dTests
+
+      - name: Upload plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: SH4dEditor-${{ matrix.name }}
+          path: |
+            build/SH4dEditor_artefacts/Release/VST3
+            build/SH4dEditor_artefacts/Release/AU
+            build/SH4dEditor_artefacts/Release/Standalone
+            
