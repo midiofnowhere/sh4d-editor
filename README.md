@@ -1,53 +1,98 @@
-# SH-4d Editor
+# SH-4d Editor  (v0.4)
 
-An original MIDI editor for the Roland SH-4d, as a VST3 / Standalone (AU on macOS) plugin built with JUCE.
-Knobs in the plugin send control changes to the SH-4d; all parameters are host-automatable and are saved in your DAW project.
+An original editor for the Roland SH-4d as a VST3 / Standalone (AU on macOS) plugin built with JUCE.
+Everything is derived from Roland's public MIDI implementation chart in the SH-4d owner's manual (v2.00).
 
-Everything here is derived from Roland's public MIDI implementation chart in the SH-4d owner's manual (v2.00).
+The SH-4d has **no System Exclusive support**, so an editor can only use control changes, bank select and
+program change. That shapes everything below: the editor can *send* any documented parameter and *listen*
+to the unit's panel (with Tx CC on), but it cannot ask the unit what its current sound is.
 
-## What it does
+## The PANEL tab: a recreation of the hardware
 
-- **4 synth parts**, each with its own full parameter set, MIDI channel and automation lane (`P1 Filter Cutoff`, `P3 LFO Rate`, ...).
-- **31 parameters per part**: filter (cutoff, resonance, HPF, drive, KBD, env, ADSR), amp (level, pan, ADSR), LFO (rate, pitch, filter, amp, fade), pitch / timbre / mod, hold / porta / sostenuto switches, sliders 1-4.
-- **Follows the hardware**: turn a knob on the SH-4d (with *System Settings > MIDI > Tx CC = ON*) and the editor knob moves.
-- **Program select**: bank MSB / LSB + program change per part, with prev / next.
-- **Rhythm part** tab for kit selection.
-- **XY pad** that can drive any two parameters of the current part.
-- **Randomiser** with an amount (small variation around the current sound up to full random) and per-group locks. Level, pan and mod wheel are never randomised.
-- **Send All** pushes all four parts to the unit; **Panic** sends All Notes Off / All Sound Off.
-- **MIDI monitor** strip at the bottom shows the last message sent and received - handy for checking your channel setup.
+The default view is laid out from a top-down photograph of the SH-4d: the OSC section with its four faders and coloured
+LED buttons, the FILTER / AMP / LFO block, VOLUME and EFFECTS, the small violet LCD with the cursor ring, the two
+encoders, the 16 round step buttons with their printed SHIFT functions, and the two-row button keyboard (16 white and
+10 black buttons, with OCTAVE / PITCH / ARPEGGIO / HOLD / D-MOTION).
+
+- **Everything the SH-4d exposes over MIDI works**: HPF, cutoff, resonance, KYBD, drive, the filter and amp envelopes,
+  PAN, LEVEL, LFO rate / fade / pitch / filter / amp, PITCH, TIMBRE and the four OSC faders. Drag a knob (Shift =
+  fine), double-click to reset, mouse wheel, right-click for MIDI learn / modulation.
+- The **LCD** shows the default oscillator screen when idle, and the name, value and bar of whatever you touch.
+- **Buttons that work**: the keyboard (plays the selected part; OCTAVE and PITCH buttons), HOLD (CC 64; with SHIFT it
+  becomes portamento, CC 65), SOUND, and **SHIFT + step button** as printed under them: 1-5 select parts, 6/8 jump
+  to SOUND, 7 to MOD, 10 INIT, 12 UNDO, 13/14 to LIBRARY, 16 MENU to SETUP, PAGE/TIE = WRITE to LIBRARY.
+- **D-MOTION** lights up when the unit's tilt (aftertouch / pitch bend) arrives.
+- Controls with **no MIDI CC on the SH-4d** (MODEL, filter and LFO TYPE, the [1] [2] encoders, VOLUME, the effects knobs
+  and buttons, the OSC buttons, the cursor buttons, the sequencer) are drawn faithfully, with their printed labels
+  dimmed, and touching one tells you on the LCD that it's unit-only.
+- No manufacturer logo artwork is used, only the product name as text.
+
+## What's in v0.2
+
+### Talks to the unit directly
+- **Hardware MIDI in / out pickers** with SH-4d auto-detect and hot-plug rescan. The plugin opens the SH-4d's
+  USB MIDI ports itself, so it works the same in Ableton, FL, Reaper, Logic or Standalone with **no MIDI routing
+  in the DAW**. If no hardware out is open it falls back to the DAW's MIDI output (Auto / Always / Off).
+- Runs on its **own engine thread**, so Send All, modulation and controller input keep working even when the
+  host isn't processing audio.
+- **Echo guard**: the unit repeating back what you just sent can't fight your knob moves.
+- Optional **controller input** (any USB keyboard / knob box): its notes play the selected part.
+
+### Sound editing
+- 4 synth parts x 31 parameters, host-automatable and saved with the project; rhythm part tab with bank/program select.
+- **Draggable envelope graphs** for the filter and amp ADSR.
+- On-screen **keyboard** for auditioning on the selected part, Panic button.
+- Randomiser with amount and group locks (level / pan / mod wheel are never randomised).
+- **Undo / redo** (buttons, or Ctrl/Cmd+Z).
+- Resizable window.
+
+### Modulation matrix (adds things the SH-4d can't do on its own)
+- **8 macros**, **4 LFOs** (sine, triangle, saws, square, sample & hold, smooth random; free Hz or tempo-synced
+  to the host from 4 bars to 1/16 triplets).
+- Sources also include **aftertouch and pitch bend** - what the SH-4d's D-Motion tilt sensor transmits.
+- Up to 32 routings, each: source -> part -> any knob, bipolar depth. Knobs keep their own value and show a
+  teal ring where the modulated value currently is. **Right-click any knob > Modulate with** for a quick route.
+- **XY pad** driving any two parameters.
+
+### Library, scenes, tools
+- **Patch library**: save the current part as a named, categorised file (plain XML in
+  `Documents/SH4dEditor/Patches`), search, load (optionally sending the bank/program first), delete.
+- **8 scenes** for all four parts, plus an **automatable Morph** between any two scenes.
+- **A/B compare** and **copy part to part**.
+- **MIDI learn** on every knob, switch, macro, LFO rate and the morph control (right-click > MIDI learn).
+
+## Setup
+1. Connect the SH-4d by USB.
+2. On the unit: **MENU > SYSTEM SETTINGS > MIDI > Tx CC = ON** if you want its panel moves to show up in the editor
+   (and its D-Motion tilt as modulation sources).
+3. Open the plugin, go to **SETUP**, press **Auto-detect SH-4d** (or pick the ports by hand).
+4. Set each part's **MIDI channel** on the SETUP page to match your unit. **The defaults (1-4, rhythm 10) are guesses.**
+5. In Standalone, leave the SH-4d unticked in JUCE's own audio/MIDI options dialog - the plugin handles the device itself.
+
+## Honest limitations
+- **No patch read-back.** The editor only knows values it sent or heard. *Send All* overwrites the live sound with what
+  the editor shows. Starting values are neutral guesses, not the unit's init sound.
+- **CC reception depends on the unit's MATRIX settings.** Roland's chart says all CCs except 0 and 32 are recognized
+  "depending on MATRIX". If a knob does nothing, check the MATRIX page. Oscillator model selection has no CC.
+- Modulation is sent as 7-bit CCs (about 8000 messages/second at most), so very fast LFOs on many parameters will be stepped.
+- Parameters under modulation are not "followed" from the hardware (it would fight the modulation).
+- CC84 (portamento control) is deliberately left out.
+- The plugin outputs silence; the SH-4d's sound comes back through its own USB audio / outputs.
+- **Written and tested without the hardware**: the MIDI map and logic are checked against the manual and an automated
+  test suite (engine, echo guard, modulation, learn, scenes, patches, state), but not against a real SH-4d.
+  First thing to do: turn a few knobs and watch the monitor strip at the bottom.
 
 ## Build
-
-Requires CMake 3.22+ and a C++17 compiler. On Linux you also need the usual JUCE dev packages (ALSA, freetype, X11, GL).
+Requires CMake 3.22+ and a C++17 compiler (Linux also needs the usual JUCE dev packages: ALSA, freetype, X11, GL).
 
 ```
 cmake -B build -DCMAKE_BUILD_TYPE=Release          # fetches JUCE 8.0.8
 cmake --build build --config Release
 ```
 
-Use an existing JUCE checkout with `-DSH4D_JUCE_PATH=/path/to/JUCE`.
-The built VST3 and Standalone end up under `build/SH4dEditor_artefacts/`.
-
-Optional headless tests of the MIDI logic: `-DSH4D_BUILD_TESTS=ON`, then run `build/SH4dTests_artefacts/.../SH4dTests`.
-
-## Setting it up
-
-1. Connect the SH-4d by USB-C.
-2. On the SH-4d: **MENU > SYSTEM SETTINGS > MIDI > Tx CC = ON** if you want panel moves to appear in the editor.
-3. Standalone: pick the SH-4d as MIDI input and output in the options dialog.
-   In a DAW: put the plugin on an instrument track, route the plugin's MIDI output to the SH-4d, and (for follow-the-hardware) route the SH-4d's MIDI input to the plugin.
-4. Set each part's **CH** to the channel that part listens on in your SH-4d.
-   **The defaults (1, 2, 3, 4, rhythm 10) are guesses.** Check your unit and change them.
-
-## Honest limitations
-
-- **No patch read-back.** The SH-4d does not support System Exclusive, so an editor cannot ask the unit for its current sound. The editor only knows values it has sent or heard (via Tx CC). Use *Send All* deliberately: it overwrites the live sound with whatever the editor shows.
-- **Defaults are neutral guesses**, not the unit's actual initial tone.
-- **CC reception depends on the unit's MATRIX settings** (the chart says all CCs except 0 and 32 are "recognized depending on settings of MATRIX"). If a knob does nothing, check the MATRIX page. Oscillator model selection has no CC, so it can't be changed from here; Slider 1-4 and Timbre do different things per oscillator model.
-- Roland's chart also lists CC84 (Portamento Control); it's deliberately left out because its meaning is note-based rather than a simple value.
-- The plugin outputs silence. The SH-4d's sound comes back through its own USB audio / outputs.
-- This was written without access to the hardware: the MIDI map and logic are checked against the manual and the headless tests, but the first thing to do on your unit is turn a few knobs and watch the monitor strip.
+Use an existing JUCE checkout with `-DSH4D_JUCE_PATH=/path/to/JUCE`. Output: `build/SH4dEditor_artefacts/Release/`.
+Tests: add `-DSH4D_BUILD_TESTS=ON` and run `build/SH4dTests_artefacts/Release/SH4dTests`.
+The included GitHub Actions workflow builds Windows, macOS (universal) and Linux and uploads the plugins as artifacts.
 
 ## MIDI map (tone parts)
 
@@ -67,10 +112,11 @@ Optional headless tests of the MIDI logic: `-DSH4D_BUILD_TESTS=ON`, then run `bu
 Program change: bank MSB 87-88 / LSB 64-77 for tones, MSB 86 / LSB 0 or 64 for rhythm kits.
 
 ## Layout
-
 ```
-Source/CcTable.h          the CC table (single source of truth)
-Source/PluginProcessor.*  parameters, MIDI in/out, state
-Source/PluginEditor.*     UI
-Tests/ProcessorTests.cpp  headless MIDI-logic tests
+Source/CcTable.h          CC table, modulation sources, shared types
+Source/PluginProcessor.*  parameters, engine thread, MIDI devices, modulation, scenes, learn, state
+Source/PatchLibrary.*     file-based patch library
+Source/PluginEditor.*     UI shell + Sound / Mod / Library / Setup pages
+Source/PanelPage.cpp      the hardware-style PANEL page and its widgets
+Tests/ProcessorTests.cpp  headless tests of the engine
 ```

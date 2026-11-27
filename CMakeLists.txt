@@ -40,8 +40,11 @@ target_sources(SH4dEditor PRIVATE
     Source/CcTable.h
     Source/PluginProcessor.h
     Source/PluginProcessor.cpp
+    Source/PatchLibrary.h
+    Source/PatchLibrary.cpp
     Source/PluginEditor.h
-    Source/PluginEditor.cpp)
+    Source/PluginEditor.cpp
+    Source/PanelPage.cpp)
 
 target_compile_definitions(SH4dEditor PUBLIC
     JUCE_WEB_BROWSER=0
@@ -61,7 +64,9 @@ if(SH4D_BUILD_TESTS)
     target_sources(SH4dTests PRIVATE
         Tests/ProcessorTests.cpp
         Source/PluginProcessor.cpp
-        Source/PluginEditor.cpp)
+        Source/PatchLibrary.cpp
+        Source/PluginEditor.cpp
+        Source/PanelPage.cpp)
     target_include_directories(SH4dTests PRIVATE Source)
     target_compile_definitions(SH4dTests PRIVATE
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_UNIT_TESTS=0)

@@ -80,4 +80,47 @@ namespace sh4d
     constexpr int kToneBankLsb   = 64;
     constexpr int kRhythmBankMsb = 86;
     constexpr int kRhythmBankLsb = 0;
+
+    // ---------------------------------------------------------------- v0.2
+    constexpr int kNumMacros = 8;
+    constexpr int kNumLfos   = 4;
+    constexpr int kNumScenes = 8;
+    constexpr int kMaxRoutes = 32;
+
+    // Modulation sources: 0-7 macros, 8-11 LFOs, 12 channel aftertouch, 13 pitch bend.
+    // Aftertouch / pitch bend are what the SH-4d's D-Motion tilt sensor transmits.
+    constexpr int kSrcMacro1 = 0, kSrcLfo1 = 8, kSrcAftertouch = 12, kSrcPitchBend = 13, kNumSources = 14;
+
+    inline constexpr const char* kSourceNames[kNumSources] = {
+        "Macro 1", "Macro 2", "Macro 3", "Macro 4", "Macro 5", "Macro 6", "Macro 7", "Macro 8",
+        "LFO 1", "LFO 2", "LFO 3", "LFO 4", "Aftertouch", "Pitch Bend" };
+
+    constexpr int kNumLfoShapes = 7;
+    inline constexpr const char* kLfoShapes[kNumLfoShapes] = {
+        "Sine", "Triangle", "Saw Up", "Saw Down", "Square", "Sample & Hold", "Smooth Random" };
+
+    constexpr int kNumLfoSync = 12;
+    inline constexpr const char* kLfoSyncNames[kNumLfoSync] = {
+        "Free (Hz)", "4 bars", "2 bars", "1 bar", "1/2", "1/4", "1/8", "1/16", "1/32", "1/4 T", "1/8 T", "1/16 T" };
+    inline constexpr double kLfoSyncBeats[kNumLfoSync] = {
+        0.0, 16.0, 8.0, 4.0, 2.0, 1.0, 0.5, 0.25, 0.125, 2.0 / 3.0, 1.0 / 3.0, 1.0 / 6.0 };
+
+    inline constexpr const char* kHostOutModes[3] = { "Auto", "Always", "Off" };
+
+    // One modulation routing: source -> (part, parameter), depth -1..+1 of the full 0-127 range.
+    struct Route
+    {
+        int   source  = 0;
+        int   part    = 0;
+        int   ccIndex = 0;     // index into kCc
+        float depth   = 0.5f;
+    };
+
+    // One learned external controller mapping. channel 0 = any channel.
+    struct LearnMap
+    {
+        int cc = 0;
+        int channel = 0;
+        int paramIndex = -1;   // index into the processor's parameter list
+    };
 }
